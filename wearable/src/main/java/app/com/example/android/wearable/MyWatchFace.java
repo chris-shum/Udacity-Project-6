@@ -129,7 +129,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
 
             mDateTextPaint = new Paint();
-            mDateTextPaint = createTextPaint(resources.getColor(R.color.secondary_text));
+            mDateTextPaint = createTextPaint(resources.getColor(R.color.primary_light));
 
             mCalendar = Calendar.getInstance();
         }
@@ -269,16 +269,22 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mCalendar.setTimeInMillis(now);
 
             //adjust offsets on time and date and size
-            String text = String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
+            String timeText = String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
                     mCalendar.get(Calendar.MINUTE));
-            canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
+//            canvas.drawText(timeText, mXOffset, mYOffset, mTextPaint);
 
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.DATE, 1);
-            SimpleDateFormat format1 = new SimpleDateFormat("EEE, MMM d yyyy");
+            SimpleDateFormat date = new SimpleDateFormat("EEE, MMM d yyyy");
 
-            String formatted = format1.format(cal.getTime());
-            canvas.drawText(formatted, mXOffset, mYOffset + 50, mDateTextPaint);
+            String dateText = date.format(cal.getTime());
+//            canvas.drawText(dateText, mXOffset, mYOffset + 50, mDateTextPaint);
+
+
+            canvas.drawText( timeText, bounds.centerX() - (mTextPaint.measureText(timeText))/2, mYOffset, mTextPaint );
+            canvas.drawText( dateText, bounds.centerX() - (mDateTextPaint.measureText(dateText))/2, mYOffset+50, mDateTextPaint);
+
+
         }
 
         /**
@@ -312,6 +318,5 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
-
     }
 }
