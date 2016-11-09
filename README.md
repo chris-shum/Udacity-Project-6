@@ -5,7 +5,9 @@ Synchronizes weather information from OpenWeatherMap on Android Phones and Table
 
 Screenshots
 --------------
-![](preview_digital_circular.png) ![](preview_digital.png)
+<img src="device.png" width = "300"><img src="wearable.png" width = "300">
+
+
 
 Pre-requisites
 --------------
