@@ -66,8 +66,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
     private int minTemp = 0;
     private int maxTemp = 0;
     private int iconID = 0;
-    private boolean dataChanged;
-    String TAG = "LogMyWatchFace";
 
     @Override
     public Engine onCreateEngine() {
@@ -105,6 +103,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
         boolean mAmbient;
         Calendar mCalendar;
         Bitmap mWeatherBitmap;
+
 
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
@@ -158,7 +157,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mWeatherTextPaint = createTextPaint(resources.getColor(R.color.primary_light));
 
             mCalendar = Calendar.getInstance();
-
         }
 
         @Override
@@ -309,10 +307,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
             canvas.drawText(dateText, bounds.centerX() - (mDateTextPaint.measureText(dateText)) / 2, mDateYOffset, mDateTextPaint);
             canvas.drawLine(bounds.centerX() - 20, mLineYOffset, bounds.centerX() + 20, mLineYOffset, mTextPaint);
 
+            if (iconID!=0){
             mWeatherBitmap = null;
-            Drawable weatherDrawable = getResources().getDrawable(WeatherIcon.loadWeatherIcon(802));
+            Drawable weatherDrawable = getResources().getDrawable(WeatherIcon.loadWeatherIcon(iconID));
             mWeatherBitmap = ((BitmapDrawable) weatherDrawable).getBitmap();
-            canvas.drawBitmap(mWeatherBitmap, bounds.centerX()-100, mWeatherIconYOffset, mWeatherIconPaint);
+            canvas.drawBitmap(mWeatherBitmap, bounds.centerX()-100, mWeatherIconYOffset, mWeatherIconPaint);}
             canvas.drawText(maxTemp + "˚", bounds.centerX()-(mWeatherTextPaint.measureText(maxTemp+"")/2), mWeatherYOffset, mWeatherTextPaint);
             canvas.drawText(minTemp + "˚", bounds.centerX()+75, mWeatherYOffset, mWeatherTextPaint);
         }
@@ -348,6 +347,5 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
-
     }
 }
