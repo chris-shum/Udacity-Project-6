@@ -36,6 +36,12 @@ import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Utility;
 import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.muzei.WeatherMuzeiSource;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
+import com.google.android.gms.wearable.Wearable;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -51,6 +57,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     public final String LOG_TAG = SunshineSyncAdapter.class.getSimpleName();
@@ -347,6 +354,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
                 updateWidgets();
                 updateMuzei();
                 notifyWeather();
+                sendWeatherToWearable();
             }
             Log.d(LOG_TAG, "Sync Complete. " + cVVector.size() + " Inserted");
             setLocationStatus(getContext(), LOCATION_STATUS_OK);
@@ -635,5 +643,34 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
         SharedPreferences.Editor spe = sp.edit();
         spe.putInt(c.getString(R.string.pref_location_status_key), locationStatus);
         spe.commit();
+    }
+    private void sendWeatherToWearable() {
+        String location = Utility.getPreferredLocation(getContext());
+        Uri weatherUri = WeatherContract.WeatherEntry.buildWeatherLocationWithStartDate(location, System.currentTimeMillis());
+        Cursor cursor = getContext().getContentResolver().query(weatherUri, NOTIFY_WEATHER_PROJECTION, null, null, null);
+        if (cursor == null) {
+            return;
+        }
+        if (!cursor.moveToFirst()) {
+            cursor.close();
+            return;
+        }
+
+        GoogleApiClient googleApiClient = new GoogleApiClient.Builder(getContext())
+                .addApi(Wearable.API)
+                .build();
+
+        ConnectionResult connectionResult = googleApiClient.blockingConnect(30, TimeUnit.SECONDS);
+        if (!connectionResult.isSuccess()) {
+            return;
+        }
+
+        PutDataMapRequest mapRequest = PutDataMapRequest.create("/weather");
+        DataMap dataMap = mapRequest.getDataMap();
+        dataMap.putString("maxTemp", Utility.formatTemperature(getContext(), cursor.getDouble(INDEX_MAX_TEMP)));
+        dataMap.putString("minTemp", Utility.formatTemperature(getContext(), cursor.getDouble(INDEX_MIN_TEMP)));
+        dataMap.putInt("iconID", cursor.getInt(INDEX_WEATHER_ID));
+        PutDataRequest putDataRequest = mapRequest.asPutDataRequest();
+        Wearable.DataApi.putDataItem(googleApiClient, putDataRequest);
     }
 }

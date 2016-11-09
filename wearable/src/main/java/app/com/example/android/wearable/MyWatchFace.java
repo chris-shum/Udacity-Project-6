@@ -32,11 +32,24 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 import android.widget.Toast;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
@@ -63,9 +76,10 @@ public class MyWatchFace extends CanvasWatchFaceService {
      */
     private static final int MSG_UPDATE_TIME = 0;
 
-    private int minTemp = 0;
-    private int maxTemp = 0;
+    private String minTemp = "0";
+    private String maxTemp = "0";
     private int iconID = 0;
+    private String TAG = "Wearable";
 
     @Override
     public Engine onCreateEngine() {
@@ -92,7 +106,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine {
+    private class Engine extends CanvasWatchFaceService.Engine implements
+            GoogleApiClient.ConnectionCallbacks,
+            GoogleApiClient.OnConnectionFailedListener,
+            DataApi.DataListener {
+
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
@@ -103,6 +121,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
         boolean mAmbient;
         Calendar mCalendar;
         Bitmap mWeatherBitmap;
+        private GoogleApiClient mGoogleApiClient;
+
 
 
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
@@ -157,6 +177,12 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mWeatherTextPaint = createTextPaint(resources.getColor(R.color.primary_light));
 
             mCalendar = Calendar.getInstance();
+
+            mGoogleApiClient = new GoogleApiClient.Builder(MyWatchFace.this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(Wearable.API)
+                    .build();
         }
 
         @Override
@@ -178,6 +204,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             super.onVisibilityChanged(visible);
 
             if (visible) {
+                mGoogleApiClient.connect();
                 registerReceiver();
 
                 // Update time zone in case it changed while we weren't visible.
@@ -345,6 +372,39 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 long delayMs = INTERACTIVE_UPDATE_RATE_MS
                         - (timeMs % INTERACTIVE_UPDATE_RATE_MS);
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
+            }
+        }
+
+        @Override
+        public void onConnected(@Nullable Bundle bundle) {
+            Wearable.DataApi.addListener(mGoogleApiClient, this);
+            Log.d(TAG, "Connected");
+        }
+
+        @Override
+        public void onConnectionSuspended(int i) {
+            Log.d(TAG, "Connection Suspended");
+        }
+
+        @Override
+        public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+            Log.d(TAG, "Connection Failed: " + connectionResult.getErrorMessage());
+        }
+
+        // Wearable Data Change Listener
+        @Override
+        public void onDataChanged(DataEventBuffer dataEventBuffer) {
+            for (DataEvent dataEvent : dataEventBuffer) {
+                if (dataEvent.getType() == DataEvent.TYPE_CHANGED) {
+                    DataItem dataItem = dataEvent.getDataItem();
+                    if (dataItem.getUri().getPath().compareTo("/weather") == 0) {
+                        DataMap dataMap = DataMapItem.fromDataItem(dataItem).getDataMap();
+                        maxTemp = dataMap.getString("maxTemp");
+                        minTemp = dataMap.getString("minTemp");
+                        iconID = dataMap.getInt("iconID");
+                        invalidate();
+                    }
+                }
             }
         }
     }
