@@ -101,6 +101,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
         Paint mTextPaint;
         Paint mDateTextPaint;
         Paint mWeatherIconPaint;
+        Paint mWeatherTextPaint;
         boolean mAmbient;
         Calendar mCalendar;
         Bitmap mWeatherBitmap;
@@ -113,7 +114,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
             }
         };
         float mXOffset;
-        float mYOffset;
+        float mTimeYOffset;
+        float mDateYOffset;
+        float mLineYOffset;
+        float mWeatherIconYOffset;
+        float mWeatherYOffset;
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -132,7 +137,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
                     .setAcceptsTapEvents(true)
                     .build());
             Resources resources = MyWatchFace.this.getResources();
-            mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+            mTimeYOffset = resources.getDimension(R.dimen.digital_time_y_offset);
+            mDateYOffset = resources.getDimension(R.dimen.digital_date_y_offset);
+            mLineYOffset = resources.getDimension(R.dimen.digital_line_y_offset);
+            mWeatherIconYOffset = resources.getDimension(R.dimen.digital_weather_icon_y_offset);
+            mWeatherYOffset = resources.getDimension(R.dimen.digital_weather_y_offset);
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.primary));
@@ -144,6 +153,9 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mDateTextPaint = createTextPaint(resources.getColor(R.color.primary_light));
 
             mWeatherIconPaint = new Paint();
+
+            mWeatherTextPaint = new Paint();
+            mWeatherTextPaint = createTextPaint(resources.getColor(R.color.primary_light));
 
             mCalendar = Calendar.getInstance();
 
@@ -206,16 +218,16 @@ public class MyWatchFace extends CanvasWatchFaceService {
             // Load resources that have alternate values for round watches.
             Resources resources = MyWatchFace.this.getResources();
             boolean isRound = insets.isRound();
-            mXOffset = resources.getDimension(isRound
-                    ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
-            float textSize = resources.getDimension(isRound
-                    ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
+            mXOffset = resources.getDimension(R.dimen.digital_x_offset);
+            float textSize = resources.getDimension(R.dimen.digital_text_size);
 
-            float dateTextSize = resources.getDimension(isRound
-                    ? R.dimen.date_text_size_round : R.dimen.date_text_size);
+            float dateTextSize = resources.getDimension(R.dimen.date_text_size);
+
+            float weatherTextSize = resources.getDimension(R.dimen.weather_text_size);
 
             mTextPaint.setTextSize(textSize);
             mDateTextPaint.setTextSize(dateTextSize);
+            mWeatherTextPaint.setTextSize(weatherTextSize);
         }
 
         @Override
@@ -293,23 +305,16 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
             String dateText = date.format(cal.getTime());
 
-            canvas.drawText(timeText, bounds.centerX() - (mTextPaint.measureText(timeText)) / 2, mYOffset, mTextPaint);
-            canvas.drawText(dateText, bounds.centerX() - (mDateTextPaint.measureText(dateText)) / 2, mYOffset + 50, mDateTextPaint);
-            canvas.drawLine(bounds.centerX() - 40 / 2, mYOffset + 75, bounds.centerX() + 40 / 2, mYOffset + 75, mTextPaint);
-
+            canvas.drawText(timeText, bounds.centerX() - (mTextPaint.measureText(timeText)) / 2, mTimeYOffset, mTextPaint);
+            canvas.drawText(dateText, bounds.centerX() - (mDateTextPaint.measureText(dateText)) / 2, mDateYOffset, mDateTextPaint);
+            canvas.drawLine(bounds.centerX() - 20, mLineYOffset, bounds.centerX() + 20, mLineYOffset, mTextPaint);
 
             mWeatherBitmap = null;
-            Drawable weatherDrawable = getResources().getDrawable(WeatherIcon.loadWeatherIcon(202));
+            Drawable weatherDrawable = getResources().getDrawable(WeatherIcon.loadWeatherIcon(802));
             mWeatherBitmap = ((BitmapDrawable) weatherDrawable).getBitmap();
-
-
-            float iconStartX = bounds.centerX() - 130 / 2;
-            canvas.drawBitmap(mWeatherBitmap, iconStartX, mYOffset + (float) (20 * 2.5), mWeatherIconPaint);
-
-            canvas.drawText(maxTemp + "˚", iconStartX + 50, mYOffset + 200, mTextPaint);
-            canvas.drawText(minTemp + "˚", iconStartX + 175, mYOffset + 200, mTextPaint);
-
-
+            canvas.drawBitmap(mWeatherBitmap, bounds.centerX()-100, mWeatherIconYOffset, mWeatherIconPaint);
+            canvas.drawText(maxTemp + "˚", bounds.centerX()-(mWeatherTextPaint.measureText(maxTemp+"")/2), mWeatherYOffset, mWeatherTextPaint);
+            canvas.drawText(minTemp + "˚", bounds.centerX()+75, mWeatherYOffset, mWeatherTextPaint);
         }
 
         /**
