@@ -21,11 +21,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -60,6 +63,12 @@ public class MyWatchFace extends CanvasWatchFaceService {
      */
     private static final int MSG_UPDATE_TIME = 0;
 
+    private int minTemp = 0;
+    private int maxTemp = 0;
+    private int iconID = 0;
+    private boolean dataChanged;
+    String TAG = "LogMyWatchFace";
+
     @Override
     public Engine onCreateEngine() {
         return new Engine();
@@ -91,8 +100,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
         Paint mBackgroundPaint;
         Paint mTextPaint;
         Paint mDateTextPaint;
+        Paint mWeatherIconPaint;
         boolean mAmbient;
         Calendar mCalendar;
+        Bitmap mWeatherBitmap;
+
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -131,7 +143,10 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mDateTextPaint = new Paint();
             mDateTextPaint = createTextPaint(resources.getColor(R.color.primary_light));
 
+            mWeatherIconPaint = new Paint();
+
             mCalendar = Calendar.getInstance();
+
         }
 
         @Override
@@ -271,18 +286,28 @@ public class MyWatchFace extends CanvasWatchFaceService {
             //adjust offsets on time and date and size
             String timeText = String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
                     mCalendar.get(Calendar.MINUTE));
-//            canvas.drawText(timeText, mXOffset, mYOffset, mTextPaint);
 
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.DATE, 1);
             SimpleDateFormat date = new SimpleDateFormat("EEE, MMM d yyyy");
 
             String dateText = date.format(cal.getTime());
-//            canvas.drawText(dateText, mXOffset, mYOffset + 50, mDateTextPaint);
+
+            canvas.drawText(timeText, bounds.centerX() - (mTextPaint.measureText(timeText)) / 2, mYOffset, mTextPaint);
+            canvas.drawText(dateText, bounds.centerX() - (mDateTextPaint.measureText(dateText)) / 2, mYOffset + 50, mDateTextPaint);
+            canvas.drawLine(bounds.centerX() - 40 / 2, mYOffset + 75, bounds.centerX() + 40 / 2, mYOffset + 75, mTextPaint);
 
 
-            canvas.drawText( timeText, bounds.centerX() - (mTextPaint.measureText(timeText))/2, mYOffset, mTextPaint );
-            canvas.drawText( dateText, bounds.centerX() - (mDateTextPaint.measureText(dateText))/2, mYOffset+50, mDateTextPaint);
+            mWeatherBitmap = null;
+            Drawable weatherDrawable = getResources().getDrawable(WeatherIcon.loadWeatherIcon(202));
+            mWeatherBitmap = ((BitmapDrawable) weatherDrawable).getBitmap();
+
+
+            float iconStartX = bounds.centerX() - 130 / 2;
+            canvas.drawBitmap(mWeatherBitmap, iconStartX, mYOffset + (float) (20 * 2.5), mWeatherIconPaint);
+
+            canvas.drawText(maxTemp + "˚", iconStartX + 50, mYOffset + 200, mTextPaint);
+            canvas.drawText(minTemp + "˚", iconStartX + 175, mYOffset + 200, mTextPaint);
 
 
         }
@@ -318,5 +343,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
+
     }
 }
